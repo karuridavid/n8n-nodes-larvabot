@@ -1,0 +1,10 @@
+{
+	"node": "n8n-nodes-larvabot.larvabotTrigger",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Sales", "Marketing & Content"],
+	"resources": {
+		"credentialDocumentation": [{ "url": "https://larvabot.com/docs/reference/api#authentication" }],
+		"primaryDocumentation": [{ "url": "https://larvabot.com/integrations/n8n" }]
+	}
+}
