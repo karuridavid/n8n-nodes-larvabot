@@ -12,7 +12,7 @@ import { getProjects, larvabotRequest } from './GenericFunctions';
 // Programmatic style (not declarative) so this node and the trigger share one request helper,
 // the Project dropdown and the same error handling.
 
-// The API returns at most 500 items per request, newest first; there are no pages.
+// The API returns at most 500 items per request, newest first; Return All pages back with `offset`.
 const MAX = 500;
 
 export class Larvabot implements INodeType {
@@ -86,22 +86,13 @@ export class Larvabot implements INodeType {
 				name: 'event',
 				type: 'options',
 				displayOptions: { show: { resource: ['lead'], operation: ['getAll'] } },
+				required: true,
 				options: [
 					{ name: 'Found', value: 'found', description: 'Scored as a fit, newest found first' },
 					{ name: 'Contacted', value: 'contacted', description: 'The first email was sent, newest first' },
 					{ name: 'Replied', value: 'replied', description: 'Replied to your email, newest reply first' },
 				],
 				default: 'found',
-			},
-			{
-				displayName: 'Project Name or ID',
-				name: 'project',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getProjects' },
-				displayOptions: { show: { resource: ['lead', 'conversation'], operation: ['getAll'] } },
-				default: '',
-				description:
-					'Only items from this project. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Return All',
@@ -119,6 +110,25 @@ export class Larvabot implements INodeType {
 				typeOptions: { minValue: 1, maxValue: MAX },
 				default: 50,
 				description: 'Max number of results to return',
+			},
+			{
+				displayName: 'Filters',
+				name: 'filters',
+				type: 'collection',
+				placeholder: 'Add Filter',
+				displayOptions: { show: { resource: ['lead', 'conversation'], operation: ['getAll'] } },
+				default: {},
+				options: [
+					{
+						displayName: 'Project Name or ID',
+						name: 'project',
+						type: 'options',
+						typeOptions: { loadOptionsMethod: 'getProjects' },
+						default: '',
+						description:
+							'Only items from this project. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					},
+				],
 			},
 		],
 	};
@@ -140,12 +150,30 @@ export class Larvabot implements INodeType {
 					response = await larvabotRequest.call(this, '/projects');
 				} else {
 					const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-					const qs: IDataObject = {
-						project: this.getNodeParameter('project', i, '') as string,
-						limit: returnAll ? MAX : (this.getNodeParameter('limit', i) as number),
-					};
+					const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
+					const path = resource === 'lead' ? '/leads' : '/conversations';
+					const qs: IDataObject = { project: filters.project ?? '' };
 					if (resource === 'lead') qs.event = this.getNodeParameter('event', i) as string;
-					response = await larvabotRequest.call(this, resource === 'lead' ? '/leads' : '/conversations', qs);
+
+					if (returnAll) {
+						// Page back 500 at a time until a short page. Items found while paging shift the
+						// offsets, so the same item can come back twice; keep the first copy.
+						const seen = new Set<unknown>();
+						const all: IDataObject[] = [];
+						for (let offset = 0; ; offset += MAX) {
+							const page = (await larvabotRequest.call(this, path, { ...qs, limit: MAX, offset })) as IDataObject[];
+							for (const row of page) {
+								if (seen.has(row.id)) continue;
+								seen.add(row.id);
+								all.push(row);
+							}
+							if (page.length < MAX) break;
+						}
+						response = all;
+					} else {
+						qs.limit = this.getNodeParameter('limit', i) as number;
+						response = await larvabotRequest.call(this, path, qs);
+					}
 				}
 
 				const rows = (Array.isArray(response) ? response : [response]) as IDataObject[];

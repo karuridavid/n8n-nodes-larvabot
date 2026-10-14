@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-larvabot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "n8n nodes for Larvabot: trigger workflows on new leads, replies and conversations, and read them in any workflow or AI agent.",
   "license": "MIT",
   "homepage": "https://larvabot.com/integrations/n8n",

@@ -45,6 +45,8 @@ Reads data on demand, in any workflow or as a tool for an AI agent.
 | Project | Get Many | Your projects |
 | Account | Get | The account the key belongs to |
 
+Leads and conversations come newest first. Set **Limit** for the newest few, or turn on **Return All** to page back through every one. The project filter is under **Filters**.
+
 Each lead includes `name`, `email`, `company`, `website`, `page_url`, `fit_score`, `fit_reason`, `stage`, `project`, `campaign`, `found_at`, `contacted_at`, `replied_at` and `dashboard_url`. Each conversation includes `platform`, `author`, `title`, `url`, `excerpt`, `relevance`, `intent`, `why`, `suggested_reply`, `posted_at` and `dashboard_url`. Full field list: [API reference](https://larvabot.com/docs/reference/api).
 
 ## Example workflows
